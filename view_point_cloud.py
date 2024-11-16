@@ -23,16 +23,14 @@ fig.set_dpi(180.0) # Let's make this figure higher resolution.
 ax = fig.add_subplot(1, 1, 1, projection='3d')
 ax.set_axis_off() # This line ensures that axes will not be rendered
 
-show(
-    lidar,
-    ax=ax, # pass our axes here
-    figsize=(10,8),
-    skip=1000, # and plot with higher point density
-    vert_exaggeration=5.0,
-    marker='o',
-    s=0.25, # higher point density might need smaller points
-    cmap='viridis',
-    colorbar_kwargs={'location': 'right',  'shrink': 0.3, 'label': 'Elevation (m)', 'pad': 0.0}
-)
+show(lidar,
+     ax=ax, # pass our axes here
+     figsize=(15, 13),
+     skip=2000, # and plot with higher point density
+     vert_exaggeration=5.0,
+     marker='o',
+     s=0.25, # higher point density might need smaller points
+     cmap='viridis',
+     colorbar_kwargs={'location': 'right',  'shrink': 0.3, 'label': 'Elevation (m)', 'pad': 0.0})
 
 plt.show()
