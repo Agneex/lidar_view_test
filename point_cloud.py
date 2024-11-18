@@ -2,6 +2,7 @@ import os
 import gc
 import laspy
 import numpy as np
+import pandas as pd
 import pyvista as pv
 
 
@@ -79,32 +80,41 @@ def visualize_point_cloud(point_data, scalars=None, p_size=1):  # Agregar parám
         print(f"Error al visualizar la nube de puntos: {e}")
 
 
-def visualize_clustered_parquet(parquet_file, p_size=1):
-    """Carga un archivo Parquet con datos de nube de puntos clusterizados y los visualiza."""
+def visualize_clustered_parquet(parquet_file, p_size=1, sampling_fraction=1.0, show_noise=False):  # Nuevo parámetro show_noise
+    """Carga y visualiza datos de un archivo Parquet.
 
+    Args:
+        parquet_file (str): Ruta al archivo Parquet.
+        point_size (int): Tamaño de los puntos.
+        sampling_fraction (float): Fracción de puntos a mostrar (0.0 - 1.0).
+        show_noise (bool): Si es True, muestra los puntos de ruido (etiqueta -1). Si es False, los filtra.
+    """
     try:
-        df = pd.read_parquet(parquet_file, engine='pyarrow') # o 'fastparquet'
+        df = pd.read_parquet(parquet_file, engine='pyarrow')
 
-        # Verificar que el DataFrame tenga las columnas esperadas
         if not all(col in df.columns for col in ['x', 'y', 'z', 'cluster_label']):
-            raise ValueError("El archivo Parquet debe contener las columnas 'x', 'y', 'z' y 'cluster_label'.")
+            raise ValueError("El archivo Parquet debe contener 'x', 'y', 'z' y 'cluster_label'.")
+
+        if not show_noise:
+            df = df[df['cluster_label'] != -1]
+
+        if sampling_fraction < 1.0:
+            sampled_df = df.sample(frac=sampling_fraction)
+            point_data = sampled_df[['x', 'y', 'z']].to_numpy()
+            cluster_labels = sampled_df['cluster_label'].to_numpy()
+        else:
+            point_data = df[['x', 'y', 'z']].to_numpy()
+            cluster_labels = df['cluster_label'].to_numpy()
 
 
-        point_data = df[['x', 'y', 'z']].to_numpy()
-        cluster_labels = df['cluster_label'].to_numpy()
-
-
-        # Crear la malla de PyVista
         point_cloud = pv.PolyData(point_data)
-        point_cloud["cluster_label"] = cluster_labels # Agregar las etiquetas como un array
+        point_cloud["cluster_label"] = cluster_labels
 
-
-        # Visualizar
         plotter = pv.Plotter()
-        plotter.add_mesh(point_cloud, scalars="cluster_label", cmap="viridis", point_size=p_size, render_points_as_spheres=True)  # Usar cmap para colores
-        plotter.show_grid()  # Mostrar la malla
+        plotter.background_color = 'gray'
+        plotter.add_mesh(point_cloud, scalars="cluster_label", cmap="viridis", point_size=p_size, render_points_as_spheres=True)  # cmap para colores
+        plotter.show_grid()
         plotter.show()
-
 
     except FileNotFoundError:
         print(f"Error: Archivo Parquet no encontrado: {parquet_file}")
@@ -112,8 +122,6 @@ def visualize_clustered_parquet(parquet_file, p_size=1):
         print(f"Error: {e}")
     except Exception as e:
         print(f"Error al visualizar: {e}")
-
-
 
 
 if __name__ == "__main__":

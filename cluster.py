@@ -2,6 +2,7 @@ import os
 import cudf
 import numpy as np
 import pandas as pd
+from tqdm import tqdm
 from dotenv import load_dotenv
 from cuml.cluster import DBSCAN
 from point_cloud import load_las_data, visualize_point_cloud
@@ -16,37 +17,39 @@ if point_data is None:
     print("Error cargando datos LAS. Saliendo.")
     exit()
 
-point_data = point_data[0:1000000]
+point_data = point_data[20000000:21000000]
 
-# Número de clusters para KMeans
-n_clusters = 6  # Ajustar según sea necesario
-
-# Convertir los datos a cudf DataFrame (necesario para CuML)
 try:
     point_data_cudf = cudf.DataFrame(point_data) # Conversión directa
 except Exception as e:  # Manejar errores si la conversión falla
     print(f"Error al convertir a cudf DataFrame: {e}")
     exit()
 
+eps = 1.7
+min_samples = 1000
+
+block_size = 200_000 # Ajusta según tu memoria y el tamaño del dataset
+
+all_labels = []
+
+for start in tqdm(range(0, len(point_data_cudf), block_size), desc="Clustering"):
+    end = min(start + block_size, len(point_data_cudf))
+    block_data = point_data_cudf.iloc[start:end]
+
+    dbscan = DBSCAN(eps=eps, min_samples=min_samples)  # Reinicializar DBSCAN para cada bloque (opcional, pero puede ser más estable)
+    block_labels = dbscan.fit_predict(block_data)
+
+    all_labels.append(block_labels)
 
 
-# Aplicar clustering KMeans con CuML
-dbscan = DBSCAN(eps=0.5, min_samples=n_clusters)
-labels_cudf = dbscan.fit_predict(point_data_cudf)
-
-
-# Convertir las etiquetas de vuelta a numpy array (opcional, si se necesita)
+labels_cudf = cudf.concat(all_labels)
 labels = labels_cudf.to_numpy()
 
-
-# Agregar las etiquetas a los datos de la nube de puntos
 clustered_points = np.column_stack((point_data, labels))
 
-
-# Convertir a DataFrame de Pandas (opcional)
 df_clustered = pd.DataFrame(clustered_points, columns=['x', 'y', 'z', 'cluster_label'])
+df_clustered['cluster_label'] = df_clustered['cluster_label'].astype(int)
 
-# Imprimir las primeras filas del DataFrame
 print(df_clustered.head())
 
 visualize_point_cloud(df_clustered.to_numpy())
