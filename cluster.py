@@ -27,8 +27,8 @@ except Exception as e:
 
 
 # Crea una instancia de DBSCAN. Ajusta eps y min_samples según tus datos.
-eps = 1.45  # Radio de vecindad
-min_samples = 1300  # Número mínimo de puntos para formar un cluster
+eps = 0.45  # Radio de vecindad
+min_samples = 700  # Número mínimo de puntos para formar un cluster
 
 dbscan = DBSCAN(eps=eps,
                 min_samples=min_samples,
@@ -49,4 +49,5 @@ print(df_clustered.head())
 
 visualize_point_cloud(df_clustered.to_numpy())
 
-df_clustered.to_parquet("data/clustered_points_dbscan.parquet", index=False)
+df_clustered.to_parquet("data/clustered_points_dbscan7.parquet", index=False)
+

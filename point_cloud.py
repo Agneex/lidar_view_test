@@ -91,25 +91,18 @@ def visualize_point_cloud(point_data, scalars=None, p_size=1):  # Agregar parám
         print(f"Error al visualizar la nube de puntos: {e}")
 
 
-def visualize_clustered_parquet(parquet_file, p_size=1, sampling_fraction=1.0, show_noise=False):
+def visualize_clustered_parquet(parquet_file, point_size=1, sampling_fraction=1.0, show_noise=False, color_scheme='viridis', custom_colors=None):  # Nuevos parámetros
+    """Carga y visualiza datos de un archivo Parquet.
+
+    Args:
+        parquet_file (str): Ruta al archivo Parquet.
+        point_size (int): Tamaño de los puntos.
+        sampling_fraction (float): Fracción de puntos a mostrar (0.0 - 1.0).
+        show_noise (bool): Si es True, muestra los puntos de ruido (etiqueta -1). Si es False, los filtra.
+        color_scheme (str o list, opcional): Esquema de color. Puede ser un string con el nombre de un mapa de colores de matplotlib (ej. 'viridis', 'jet', 'magma', etc.) o una lista de colores en formato RGB o hexadecimal. Por defecto es 'viridis'.
+        custom_colors (dict, opcional): Diccionario que mapea las etiquetas de cluster a colores específicos.  Por ejemplo:  `{-1: 'red', 0: 'blue', 1: 'green'}`. Si se proporciona, anula `color_scheme`.
+
     """
-    Visualizes a 3D point cloud from a Parquet file, with optional sampling and noise filtering.
-
-    Parameters:
-    - parquet_file (str): Path to the Parquet file containing the point cloud data.
-    - p_size (int, optional): Size of the points in the visualization. Default is 1.
-    - sampling_fraction (float, optional): Fraction of points to sample from the Parquet file. Default is 1.0 (no sampling).
-    - show_noise (bool, optional): Whether to include noise points in the visualization. Default is False (noise points are excluded).
-
-    Returns:
-    None
-
-    Raises:
-    - FileNotFoundError: If the specified Parquet file is not found.
-    - ValueError: If the Parquet file does not contain the required columns ('x', 'y', 'z', 'cluster_label').
-    - Exception: If any other error occurs during the visualization process.
-    """
-
     try:
         df = pd.read_parquet(parquet_file, engine='pyarrow')
 
@@ -133,9 +126,26 @@ def visualize_clustered_parquet(parquet_file, p_size=1, sampling_fraction=1.0, s
 
         plotter = pv.Plotter()
         plotter.background_color = 'gray'
-        plotter.add_mesh(point_cloud, scalars="cluster_label", cmap="viridis", point_size=p_size, render_points_as_spheres=True)  # cmap for colors
+
+
+
+        if custom_colors:
+            # Usar colores personalizados si se proporcionan
+            plotter.add_mesh(point_cloud, scalars="cluster_label", cmap=custom_colors, point_size=point_size, render_points_as_spheres=True)
+
+        elif isinstance(color_scheme, list):
+             # Usar la lista de colores si se proporciona.
+            plotter.add_mesh(point_cloud, scalars="cluster_label", cmap=color_scheme, point_size=point_size, render_points_as_spheres=True)
+        else:
+            # Usar el mapa de colores especificado
+            plotter.add_mesh(point_cloud, scalars="cluster_label", cmap=color_scheme, point_size=point_size, render_points_as_spheres=True)
+
+
+
         plotter.show_grid()
         plotter.show()
+
+
 
     except FileNotFoundError:
         print(f"Error: Archivo Parquet no encontrado: {parquet_file}")
