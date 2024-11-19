@@ -2,7 +2,7 @@ from point_cloud import visualize_clustered_parquet
 
 data = 'data/clustered_points_dbscan5.parquet'
 
-visualize_clustered_parquet(data, point_size=2, show_noise=False, color_scheme='YlOrRd')
+visualize_clustered_parquet(data, point_size=2, show_noise=True, color_scheme='YlOrRd')
 
 # visualize_clustered_parquet(data, point_size=2, show_noise=True, color_scheme=['cyan'])
 
