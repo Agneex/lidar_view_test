@@ -17,7 +17,7 @@ if point_data is None:
     print("Error cargando datos LAS. Saliendo.")
     exit()
 
-point_data = point_data[20000000:21000000]
+point_data = point_data[20000000:22000000]
 
 try:
     point_data_cudf = cudf.DataFrame(point_data) # Conversión directa
@@ -25,7 +25,7 @@ except Exception as e:  # Manejar errores si la conversión falla
     print(f"Error al convertir a cudf DataFrame: {e}")
     exit()
 
-eps = 1.7
+eps = 1.55
 min_samples = 1000
 
 block_size = 200_000 # Ajusta según tu memoria y el tamaño del dataset

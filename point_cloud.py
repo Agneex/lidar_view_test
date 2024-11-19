@@ -7,6 +7,20 @@ import pyvista as pv
 
 
 def load_las_data(las_file_path, block_size=1_000_000, sampling_factor=10):
+    """
+    Carga un archivo .las y devuelve una matriz de puntos 3D después de aplicar submuestreo.
+
+    Parámetros:
+    - las_file_path (str): Ruta al archivo .las a cargar.
+    - block_size (int, opcional): Tamaño de bloque para cargar puntos de manera incremental.
+                                  Valor predeterminado: 1,000,000.
+    - sampling_factor (int, opcional): Factor de submuestreo para reducir el número de puntos.
+                                       Valor predeterminado: 10.
+
+    Devuelve:
+    - np.ndarray: Matriz de puntos 3D después de aplicar submuestreo.
+                  Si hay algún error durante la carga o el procesamiento, devuelve None.
+    """
 
     try:
         las = laspy.read(las_file_path)
@@ -25,16 +39,13 @@ def load_las_data(las_file_path, block_size=1_000_000, sampling_factor=10):
             y = las.Y[indices] * las.header.scale[1] + las.header.offset[1]
             z = las.Z[indices] * las.header.scale[2] + las.header.offset[2]
 
-
             block_points = np.vstack((x, y, z)).T.astype(np.float64)
             point_data.append(block_points)
-
 
             del x, y, z, indices, block_points
             gc.collect()
 
         point_data = np.vstack(point_data) if point_data else np.array([]) # Manejar archivos vacíos o con errores
-
 
         return point_data
 
@@ -80,15 +91,25 @@ def visualize_point_cloud(point_data, scalars=None, p_size=1):  # Agregar parám
         print(f"Error al visualizar la nube de puntos: {e}")
 
 
-def visualize_clustered_parquet(parquet_file, p_size=1, sampling_fraction=1.0, show_noise=False):  # Nuevo parámetro show_noise
-    """Carga y visualiza datos de un archivo Parquet.
-
-    Args:
-        parquet_file (str): Ruta al archivo Parquet.
-        point_size (int): Tamaño de los puntos.
-        sampling_fraction (float): Fracción de puntos a mostrar (0.0 - 1.0).
-        show_noise (bool): Si es True, muestra los puntos de ruido (etiqueta -1). Si es False, los filtra.
+def visualize_clustered_parquet(parquet_file, p_size=1, sampling_fraction=1.0, show_noise=False):
     """
+    Visualizes a 3D point cloud from a Parquet file, with optional sampling and noise filtering.
+
+    Parameters:
+    - parquet_file (str): Path to the Parquet file containing the point cloud data.
+    - p_size (int, optional): Size of the points in the visualization. Default is 1.
+    - sampling_fraction (float, optional): Fraction of points to sample from the Parquet file. Default is 1.0 (no sampling).
+    - show_noise (bool, optional): Whether to include noise points in the visualization. Default is False (noise points are excluded).
+
+    Returns:
+    None
+
+    Raises:
+    - FileNotFoundError: If the specified Parquet file is not found.
+    - ValueError: If the Parquet file does not contain the required columns ('x', 'y', 'z', 'cluster_label').
+    - Exception: If any other error occurs during the visualization process.
+    """
+
     try:
         df = pd.read_parquet(parquet_file, engine='pyarrow')
 
@@ -112,7 +133,7 @@ def visualize_clustered_parquet(parquet_file, p_size=1, sampling_fraction=1.0, s
 
         plotter = pv.Plotter()
         plotter.background_color = 'gray'
-        plotter.add_mesh(point_cloud, scalars="cluster_label", cmap="viridis", point_size=p_size, render_points_as_spheres=True)  # cmap para colores
+        plotter.add_mesh(point_cloud, scalars="cluster_label", cmap="viridis", point_size=p_size, render_points_as_spheres=True)  # cmap for colors
         plotter.show_grid()
         plotter.show()
 
