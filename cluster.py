@@ -2,9 +2,8 @@ import os
 import cudf
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 from dotenv import load_dotenv
-from cuml.cluster import DBSCAN
+from cuml.cluster import DBSCAN  # Importar DBSCAN de CuML
 from point_cloud import load_las_data, visualize_point_cloud
 
 load_dotenv()
@@ -17,36 +16,32 @@ if point_data is None:
     print("Error cargando datos LAS. Saliendo.")
     exit()
 
-point_data = point_data[20000000:22000000]
+# Selecciona la porción de datos que quieres usar (ajusta según tus necesidades y la memoria disponible)
+point_data = point_data[20000000:21000000]
 
 try:
-    point_data_cudf = cudf.DataFrame(point_data) # Conversión directa
-except Exception as e:  # Manejar errores si la conversión falla
+    point_data_cudf = cudf.DataFrame(point_data)
+except Exception as e:
     print(f"Error al convertir a cudf DataFrame: {e}")
     exit()
 
-eps = 1.55
-min_samples = 1000
 
-block_size = 200_000 # Ajusta según tu memoria y el tamaño del dataset
+# Crea una instancia de DBSCAN. Ajusta eps y min_samples según tus datos.
+eps = 0.45  # Radio de vecindad
+min_samples = 700  # Número mínimo de puntos para formar un cluster
 
-all_labels = []
+dbscan = DBSCAN(eps=eps,
+                min_samples=min_samples,
+                max_mbytes_per_batch=8000)
 
-for start in tqdm(range(0, len(point_data_cudf), block_size), desc="Clustering"):
-    end = min(start + block_size, len(point_data_cudf))
-    block_data = point_data_cudf.iloc[start:end]
+# Ajusta el modelo a todos los datos y obtén las etiquetas
+labels_cudf = dbscan.fit_predict(point_data_cudf)
 
-    dbscan = DBSCAN(eps=eps, min_samples=min_samples)  # Reinicializar DBSCAN para cada bloque (opcional, pero puede ser más estable)
-    block_labels = dbscan.fit_predict(block_data)
-
-    all_labels.append(block_labels)
-
-
-labels_cudf = cudf.concat(all_labels)
+# Convierte las etiquetas a un array NumPy
 labels = labels_cudf.to_numpy()
 
+# Crea el DataFrame de Pandas
 clustered_points = np.column_stack((point_data, labels))
-
 df_clustered = pd.DataFrame(clustered_points, columns=['x', 'y', 'z', 'cluster_label'])
 df_clustered['cluster_label'] = df_clustered['cluster_label'].astype(int)
 
@@ -54,4 +49,5 @@ print(df_clustered.head())
 
 visualize_point_cloud(df_clustered.to_numpy())
 
-df_clustered.to_parquet("data/clustered_points.parquet", index=False)
+df_clustered.to_parquet("data/clustered_points_dbscan7.parquet", index=False)
+
