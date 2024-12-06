@@ -25,8 +25,8 @@ except Exception as e:
     exit()
 
 
-eps = 0.45
-min_samples = 700
+eps = 0.5
+min_samples = 500
 
 dbscan = DBSCAN(eps=eps,
                 min_samples=min_samples,
@@ -44,4 +44,8 @@ print(df_clustered.head())
 
 visualize_point_cloud(df_clustered.to_numpy())
 
-df_clustered.to_parquet("data/clustered_points_dbscan7.parquet", index=False)
+df_clustered.to_parquet("data/clustered_points_dbscan8.parquet", index=False)
+
+# test 8
+# eps = 0.5
+# min_samples = 500
